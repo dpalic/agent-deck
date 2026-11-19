@@ -1,0 +1,94 @@
+internal/session/instructions_file.go
+  s_d36127f21358f7::t_71c2ca1ae1487d 1-382
+cmd/agent-deck/session_show_set_cmd.go
+  s_d36127f21358f7::t_71c2ca1ae1487d 195-204,338-340,485,512-514
+documentation/HARNESS_IDENTITY.md
+  s_8c167998a1fee5::t_5a7a23f5f454dd 255-271
+  s_8c167998a1fee5::t_9d4004804fedda 237-240
+  s_8c167998a1fee5::t_53169001fa1ff7 279-284
+  s_8c167998a1fee5::t_2c2ad7a45cc67d 312-317
+  s_d36127f21358f7::t_71c2ca1ae1487d 224
+  s_d36127f21358f7::t_94a5ce6e51c4f5 217-223,225-236,241-254,272-278,285-287,318,320-322
+internal/session/identity_injection.go
+  s_d36127f21358f7::t_71c2ca1ae1487d 256-264,268-279,530-547,550,552,554-557,801,803-804,809-813
+  s_8c167998a1fee5::t_dde366395cae84 829-837,841,845
+  s_d36127f21358f7::t_1517a5c3651c06 242,245-248,251,255,814-828,838-840,842-844,846-847
+internal/session/instructions_file_inherit_test.go
+  s_8c167998a1fee5::t_d4c0f16a47f2f2 1-130,133-134
+  s_8c167998a1fee5::t_d6d27e372c013a 131-132,135-157
+skills/agent-deck/references/cli-reference.md
+  s_8c167998a1fee5::t_31ec863544db07 464
+  s_8c167998a1fee5::t_750bf53bb56273 106
+  s_8c167998a1fee5::t_37d7dbca68f4e2 483
+  s_d36127f21358f7::t_71c2ca1ae1487d 486-487
+  s_d36127f21358f7::t_61e9c1c25a8ed9 472,484-485,488-490
+internal/session/cross_harness_switch.go
+  s_d36127f21358f7::t_71c2ca1ae1487d 341,707,710-712
+cmd/agent-deck/instructions_file_cmd_test.go
+  s_d36127f21358f7::t_71c2ca1ae1487d 1-326
+internal/session/instructions_file_delivery_test.go
+  s_8c167998a1fee5::t_385d67723fa6b1 197
+  s_8c167998a1fee5::t_07a93f0562b3cd 1-93,97-98,117-124,127-188,192-196,198-241
+  s_8c167998a1fee5::t_ccf29bdfd0cf25 189-191
+  s_8c167998a1fee5::t_e33fc31b6604c0 94-96,99-116,125-126
+internal/session/instance_fork.go
+  s_d36127f21358f7::t_71c2ca1ae1487d 182,402-404,526,629
+internal/session/instructions_file_test.go
+  s_d36127f21358f7::t_71c2ca1ae1487d 1-512
+cmd/agent-deck/instructions_file_cmd.go
+  s_8c167998a1fee5::t_e9238d0c17f22d 1-57
+cmd/agent-deck/launch_cmd.go
+  s_8c167998a1fee5::t_93865c5ce8fcdf 160-164,684-688
+cmd/agent-deck/main.go
+  s_8c167998a1fee5::t_322b695a758216 1861-1869,2042-2045,2753-2757
+cmd/agent-deck/remote_creation_catalog.go
+  s_8c167998a1fee5::t_c85ebe54e7b6d5 28-35
+cmd/agent-deck/session_output_cmd.go
+  s_8c167998a1fee5::t_ae953f0329dbf9 404,454,466-477,479-489,501-506
+cmd/agent-deck/testdata/goldens/help_add.golden
+  s_8c167998a1fee5::t_fd6dbaf1fdbfe1 46-47
+cmd/agent-deck/testdata/goldens/help_launch.golden
+  s_8c167998a1fee5::t_ad25bba9383309 52-53
+cmd/agent-deck/testdata/goldens/session_show_json.golden
+  s_8c167998a1fee5::t_cfae8ef2352923 13-14
+internal/session/cross_harness_switch_failure_test.go
+  s_8c167998a1fee5::t_64ffcc3ae425ad 17
+internal/session/instance.go
+  s_8c167998a1fee5::t_a88d6363cafef8 513-524
+internal/session/instructions_file_persist.go
+  s_8c167998a1fee5::t_868af182f57094 1-107
+internal/session/mutators.go
+  s_8c167998a1fee5::t_33ce8a5afcbf55 57-63,111,137-138,550-565
+internal/session/remote_creation.go
+  s_8c167998a1fee5::t_51f197369dcab9 29-38
+internal/session/storage.go
+  s_8c167998a1fee5::t_11da51e27a4532 206-211,1206-1208,1427,1578,1929
+internal/statedb/migrate.go
+  s_8c167998a1fee5::t_77a871f010cb46 116-122
+skills/agent-deck/references/config-reference.md
+  s_8c167998a1fee5::t_71b0edd9e0374a 717
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "90ac684b13235ad1cf22ac8c9608408d6f98c1b5",
+  "prompts": {},
+  "sessions": {
+    "s_8c167998a1fee5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4348cf51-b74d-4e1f-bb39-92a179fe5ced",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Darko Palic <darko.palic@xenovation.com>"
+    },
+    "s_d36127f21358f7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c25a58bf-dad9-4dec-a34a-03f1e15e3880",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Darko Palic <darko.palic@xenovation.com>"
+    }
+  }
+}
