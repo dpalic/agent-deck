@@ -1858,14 +1858,15 @@ func reorderArgsForFlagParsing(args []string) []string {
 		"c": true, "cmd": true,
 		"m": true, "message": true, "message-file": true,
 		"p": true, "parent": true,
-		"mcp":           true,
-		"channel":       true,
-		"plugin":        true,
-		"extra-arg":     true,
-		"wrapper":       true,
-		"model":         true,
-		"effort":        true,
-		"startup-query": true, "additional-path": true,
+		"mcp":               true,
+		"channel":           true,
+		"plugin":            true,
+		"extra-arg":         true,
+		"instructions-file": true,
+		"wrapper":           true,
+		"model":             true,
+		"effort":            true,
+		"startup-query":     true, "additional-path": true,
 		"w":              true,
 		"worktree":       true,
 		"location":       true,
@@ -2038,6 +2039,10 @@ func handleAddCommand(profile string, args []string, inspectFlags func(*flag.Fla
 	titleLock := fs.Bool("title-lock", false, "Lock session title so Claude's session name never overrides it (#697)")
 	noTitleSync := fs.Bool("no-title-sync", false, "Alias for --title-lock")
 	noIdentity := fs.Bool("no-identity", false, "Do not inject the agent-deck session identity block into the harness (global default: [launch] inject_identity)")
+	// Per-session instructions file (instructions_file.go): appended to the
+	// context block every spawn hands the harness.
+	var instructionsFiles instructionsFileFlag
+	fs.Var(&instructionsFiles, "instructions-file", "Absolute path of a file whose content is appended to this session's agent-deck context block at every start, restart and resume (repeatable, or one comma separated list; the files are injected in that order; every harness; read at spawn time, a missing file only warns)")
 	quickCreate := fs.Bool("quick", false, "Create a quick session with a machine-generated handle; TUI shows Claude's live task description when available")
 	quickCreateShort := fs.Bool("Q", false, "Create a quick session (short)")
 	jsonOutput := fs.Bool("json", false, "Output as JSON")
@@ -2743,6 +2748,11 @@ func handleAddCommand(profile string, args []string, inspectFlags func(*flag.Fla
 		// No-op flag without --plugin — quietly persist the preference
 		// for future session set / dialog edits.
 		newInstance.PluginChannelLinkDisabled = true
+	}
+
+	if err := applyInstructionsFileFlag(newInstance, &instructionsFiles); err != nil {
+		fmt.Printf("Error: %v\n", err)
+		exitCLI(1)
 	}
 
 	// Apply --extra-arg flags (claude only for now — these are passed to the

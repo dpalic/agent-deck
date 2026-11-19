@@ -113,6 +113,13 @@ type toolDataBlob struct {
 	// struct do — MergeToolDataExtras would otherwise treat the omission as
 	// "a binary that doesn't know this key" and resurrect the old value.
 	ContextLevel string `json:"context_level,omitempty"`
+	// InstructionsFile and InstructionsFiles are the per-session instructions
+	// files (internal/session/instructions_file.go), listed for the same
+	// reason as ContextLevel: clearing them must not be undone by
+	// MergeToolDataExtras. The first is the pre-list key, written in step
+	// with the list so a one-file build still finds one file.
+	InstructionsFile  string   `json:"instructions_file,omitempty"`
+	InstructionsFiles []string `json:"instructions_files,omitempty"`
 	// PromptSuggestions is the per-session prompt-suggestions override
 	// (internal/session/prompt_suggestions.go), listed for the same reason as
 	// ContextLevel: clearing it must not be undone by MergeToolDataExtras.

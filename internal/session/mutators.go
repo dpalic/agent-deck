@@ -54,6 +54,13 @@ const (
 	// clears the override (back to group/global resolution). See
 	// Instance.EffectiveContextLevel.
 	FieldContextLevel = "context-level"
+	// FieldInstructionsFile persists the absolute paths of the files whose
+	// content is appended to this session's context block at every spawn, in
+	// the given order (instructions_file.go). One value names them all,
+	// separated by InstructionsFileSeparator, and REPLACES the whole list;
+	// empty clears it. Restart-required: the block is built into the spawn
+	// command.
+	FieldInstructionsFile = "instructions-file"
 	// FieldPromptSuggestions persists the per-session override for Claude
 	// Code prompt suggestions: children-off, on or off. Empty clears it (back
 	// to the profile/[launch] config). See prompt_suggestions.go.
@@ -101,6 +108,7 @@ var ValidMutableFields = []string{
 	FieldPin,
 	FieldModel,
 	FieldContextLevel,
+	FieldInstructionsFile,
 	FieldPromptSuggestions,
 	FieldWaitTimeout,
 	FieldFavorite,
@@ -126,7 +134,8 @@ const (
 func RestartPolicyFor(field string) FieldRestartPolicy {
 	switch field {
 	case FieldCommand, FieldWrapper, FieldTool, FieldChannels, FieldPlugins, FieldExtraArgs, FieldPath,
-		FieldSkipPermissions, FieldAutoMode, FieldAccount, FieldModel, FieldContextLevel, FieldPromptSuggestions,
+		FieldSkipPermissions, FieldAutoMode, FieldAccount, FieldModel, FieldContextLevel, FieldInstructionsFile,
+		FieldPromptSuggestions,
 		// Resume flags are baked into the next spawn command.
 		FieldToolSessionID:
 		return FieldRestartRequired
@@ -537,6 +546,22 @@ func SetField(inst *Instance, field, value string, extraArgsTokens []string) (ol
 			}
 			inst.ContextLevel = norm
 		}
+
+	case FieldInstructionsFile:
+		// One value, which may name several files separated by
+		// InstructionsFileSeparator, and it REPLACES the whole list: this is
+		// one field, not an append. Empty clears it. Every entry must resolve
+		// to an absolute path, because a relative one would be read against
+		// whatever directory the next spawn ran from, which is not the
+		// operator's. $VARs and ~ are expanded (ParseInstructionsFileList),
+		// the files are read at spawn time, so a path that does not exist yet
+		// is accepted and reported by `session primer`.
+		oldValue = inst.InstructionsFileValue()
+		paths, listErr := ParseInstructionsFileList(value)
+		if listErr != nil {
+			return oldValue, nil, &MutationError{Field: field, Msg: listErr.Error()}
+		}
+		inst.InstructionsFiles = paths
 
 	case FieldPromptSuggestions:
 		// Restart-required: the setting is an env var in the spawn command.

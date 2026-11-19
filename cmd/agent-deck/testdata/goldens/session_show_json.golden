@@ -10,6 +10,8 @@
   "hook_status": "",
   "hook_status_fresh": false,
   "id": "golden-sess-1",
+  "instructions_file": "",
+  "instructions_files": [],
   "no_transition_notify": false,
   "order": 0,
   "parent_project_path": "",

@@ -49,6 +49,8 @@ Options:
     	Place the child in the parent session's group instead of the cwd-derived group (auto-applied for git worktree children; use this to force it for non-worktree paths)
   -inherit-telegram-env
     	Keep TELEGRAM_* env vars in the child (#1133); off by default to prevent duplicate plugin pollers
+  -instructions-file value
+    	Absolute path of a file whose content is appended to this session's agent-deck context block at every start, restart and resume (repeatable, or one comma separated list; the files are injected in that order; every harness; read at spawn time, a missing file only warns)
   -json
     	Output as JSON
   -location string

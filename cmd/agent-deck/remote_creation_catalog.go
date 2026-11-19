@@ -25,7 +25,14 @@ func creationFieldsFromFlags(fs *flag.FlagSet) []session.RemoteCreationField {
 		if boolean, ok := f.Value.(interface{ IsBoolFlag() bool }); ok && boolean.IsBoolFlag() {
 			takesValue = false
 		}
-		fields = append(fields, session.RemoteCreationField{Name: f.Name, TakesValue: takesValue})
+		// Self-advertised the same way: a flag whose value type says it keeps
+		// every occurrence is marked repeatable, so a client can tell a build
+		// that takes several values from one that takes a single value.
+		repeatable := false
+		if many, ok := f.Value.(interface{ IsRepeatableFlag() bool }); ok && many.IsRepeatableFlag() {
+			repeatable = true
+		}
+		fields = append(fields, session.RemoteCreationField{Name: f.Name, TakesValue: takesValue, Repeatable: repeatable})
 	})
 	return fields
 }

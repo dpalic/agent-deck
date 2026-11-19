@@ -203,6 +203,12 @@ type InstanceData struct {
 	// tool_data extras zone (context_level_persist.go).
 	ContextLevel string `json:"context_level,omitempty"`
 
+	// InstructionsFiles mirrors Instance.InstructionsFiles; InstructionsFile
+	// is its first path, kept under the pre-list key. Both live in the
+	// tool_data extras zone (instructions_file_persist.go).
+	InstructionsFile  string   `json:"instructions_file,omitempty"`
+	InstructionsFiles []string `json:"instructions_files,omitempty"`
+
 	// QueuedMessage mirrors Instance.QueuedMessage (tool_data extras zone,
 	// queued_start.go).
 	QueuedMessage string `json:"queued_message,omitempty"`
@@ -1197,6 +1203,9 @@ func instanceToRow(inst *Instance) (*statedb.InstanceRow, error) {
 	// #2260: the per-session context-level override lives in the same extras
 	// zone so a restart from any process honours `session set ... context-level`.
 	toolData = WriteContextLevelToToolData(toolData, inst.ContextLevel)
+	// The per-session instructions files live in the same extras zone, so a
+	// restart from any process carries the operator's files.
+	toolData = WriteInstructionsFilesToToolData(toolData, inst.InstructionsFilePaths())
 	toolData = WriteQueuedMessageToToolData(toolData, inst.QueuedMessage)
 	toolData = WritePromptSuggestionsToToolData(toolData, inst.PromptSuggestions)
 	toolData = WriteWaitTimeoutToToolData(toolData, inst.WaitTimeout)
@@ -1415,6 +1424,7 @@ func (s *Storage) LoadLite() ([]*InstanceData, []*GroupData, error) {
 			IdentityInjectionDisabled: ReadIdentityInjectionDisabledFromToolData(r.ToolData),
 			ConductorName:             ReadConductorNameFromToolData(r.ToolData),
 			ContextLevel:              ReadContextLevelFromToolData(r.ToolData),
+			InstructionsFiles:         ReadInstructionsFilesFromToolData(r.ToolData),
 			QueuedMessage:             ReadQueuedMessageFromToolData(r.ToolData),
 			PromptSuggestions:         ReadPromptSuggestionsFromToolData(r.ToolData),
 			WaitTimeout:               ReadWaitTimeoutFromToolData(r.ToolData),
@@ -1565,6 +1575,7 @@ func (s *Storage) LoadWithGroupsSnapshot() ([]*Instance, []*GroupData, *statedb.
 			IdentityInjectionDisabled: ReadIdentityInjectionDisabledFromToolData(r.ToolData),
 			ConductorName:             ReadConductorNameFromToolData(r.ToolData),
 			ContextLevel:              ReadContextLevelFromToolData(r.ToolData),
+			InstructionsFiles:         ReadInstructionsFilesFromToolData(r.ToolData),
 			QueuedMessage:             ReadQueuedMessageFromToolData(r.ToolData),
 			PromptSuggestions:         ReadPromptSuggestionsFromToolData(r.ToolData),
 			WaitTimeout:               ReadWaitTimeoutFromToolData(r.ToolData),
@@ -1915,6 +1926,7 @@ func (s *Storage) convertToInstances(data *StorageData) ([]*Instance, []*GroupDa
 			IdentityInjectionDisabled:    instData.IdentityInjectionDisabled,
 			ConductorName:                instData.ConductorName,
 			ContextLevel:                 instData.ContextLevel,
+			InstructionsFiles:            instructionsFilesOf(instData.InstructionsFiles, instData.InstructionsFile),
 			QueuedMessage:                instData.QueuedMessage,
 			PromptSuggestions:            instData.PromptSuggestions,
 			WaitTimeout:                  instData.WaitTimeout,

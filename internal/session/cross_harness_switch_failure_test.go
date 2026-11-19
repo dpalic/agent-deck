@@ -14,7 +14,7 @@ func TestCrossHarnessFailure_NoSourceMutationForDistinctTarget(t *testing.T) {
 	source := &Instance{ID: "source", Tool: "claude", Account: "personal", ClaudeSessionID: "source-native", ProjectPath: "/source", Title: "source"}
 	before := identityForInstance(source)
 	plan := &FreshTargetLaunchPlan{Target: FreshTargetIdentity{InstanceID: "target", Tool: "codex", Account: "work", ProjectPath: "/source", Title: "source", GroupPath: "group"}, NativeCommand: "codex"}
-	target := newCrossHarnessTarget(plan)
+	target := newCrossHarnessTarget(plan, nil)
 	if target.ID == source.ID || target.Tool == source.Tool {
 		t.Fatal("cross-harness target reused source identity")
 	}

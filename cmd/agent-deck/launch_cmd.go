@@ -157,6 +157,11 @@ func handleLaunchCommand(profile string, args []string, inspectFlags func(*flag.
 	// Issue #1143: auto-stop dormant child sessions.
 	idleTimeout := fs.String("idle-timeout", "", "Auto-stop session after this duration of no tmux output (Go duration: 30m, 1h, 24h). 0 or unset = disabled")
 
+	// Per-session instructions files (instructions_file.go): appended to the
+	// context block every spawn hands the harness, one section per file.
+	var instructionsFiles instructionsFileFlag
+	fs.Var(&instructionsFiles, "instructions-file", "Absolute path of a file whose content is appended to this session's agent-deck context block at every start, restart and resume (repeatable, or one comma separated list; the files are injected in that order; every harness; read at spawn time, a missing file only warns)")
+
 	createDir := fs.Bool("create-dir", false, "Create the project directory when it does not exist")
 	trustFolder := fs.Bool("trust-folder", false, "Let agent-deck mark this folder trusted for the tool (adds it to [security] trusted_folders in config.toml)")
 	capabilities := fs.Bool("capabilities", false, "Report authoritative creation fields and host catalogs (requires --json)")
@@ -674,6 +679,11 @@ func handleLaunchCommand(profile string, args []string, inspectFlags func(*flag.
 		newInstance.WorktreeRepoRoot = worktreeRepoRoot
 		newInstance.WorktreeBranch = wtBranch
 		newInstance.WorktreeType = worktreeType
+	}
+
+	if err := applyInstructionsFileFlag(newInstance, &instructionsFiles); err != nil {
+		out.Error(err.Error(), ErrCodeInvalidOperation)
+		exitCLI(1)
 	}
 
 	// Issue #1143: --idle-timeout 30m → 1800s on the Instance, picked up by

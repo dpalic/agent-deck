@@ -338,7 +338,7 @@ func ExecuteCrossHarnessSwitch(ctx context.Context, cfg *UserConfig, source *Ins
 		return failCrossHarness(journalPath, journal, result, fmt.Errorf("load target %q: %w", plan.Target.InstanceID, err))
 	}
 	if target == nil {
-		target = newCrossHarnessTarget(plan)
+		target = newCrossHarnessTarget(plan, source)
 		// Replacement preserves the source's visible placement and parent routing;
 		// only the fresh harness/native identity changes.
 		target.Order = source.Order
@@ -704,9 +704,12 @@ func crossHarnessClaudeTrustPath(target *Instance) string {
 	return filepath.Join(configDir, ".claude.json")
 }
 
-func newCrossHarnessTarget(plan *FreshTargetLaunchPlan) *Instance {
+func newCrossHarnessTarget(plan *FreshTargetLaunchPlan, source *Instance) *Instance {
 	target := NewInstanceWithGroupAndTool(plan.Target.Title, plan.Target.ProjectPath, plan.Target.GroupPath, plan.Target.Tool)
 	target.ID = plan.Target.InstanceID
+	// The same session with a new harness, so it keeps its instructions files
+	// (#3206).
+	inheritInstructionsFiles(target, source)
 	target.Account = plan.Target.Account
 	target.Command = plan.NativeCommand
 	if target.tmuxSession != nil {

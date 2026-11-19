@@ -401,6 +401,7 @@ func handleSessionPrimer(profileArg string, args []string) {
 		fmt.Println("Usage: agent-deck session primer [id] [options]")
 		fmt.Println()
 		fmt.Println("Show the resolved context-level and the exact primer/identity text a session's harness receives (issue #2260).")
+		fmt.Println("The text includes the session's instructions file (`session set <id> instructions-file`) when one is set and readable; \"Instructions\" says what became of it.")
 		fmt.Println("Precedence: global ([launch].context_level) < group ([groups.\"<path>\"].context_level) < session (`session set <id> context-level`).")
 		fmt.Println("If no id is given, auto-detects the current session (like `session current`).")
 		fmt.Println()
@@ -450,7 +451,7 @@ func handleSessionPrimer(profileArg string, args []string) {
 
 	text := ""
 	if active {
-		text = inst.BuildContextPromptForLevel(level)
+		text = inst.BuildDeliveredContextPrompt(level)
 	}
 
 	identityFile, _ := inst.IdentityFilePath()
@@ -462,15 +463,30 @@ func handleSessionPrimer(profileArg string, args []string) {
 		delivery = "inline (file written where the harness runs: $XDG_RUNTIME_DIR/agent-deck/identity/<id>/identity.md, else ~/.local/share/agent-deck/identity/<id>/identity.md)"
 	}
 
+	// The per-session instructions files and what became of each: the content
+	// is part of "text" when it could be read, and the state says so when it
+	// could not (unset / ok / unreadable: <reason> / not delivered). The two
+	// scalars are the first file, kept for the clients that read them.
+	instructionsFile, instructionsState := inst.InstructionsFileState()
+	instructionsFiles := inst.InstructionsFilesState()
+	if instructionsFiles == nil {
+		// Always an array, never null: an absent key would read as "this
+		// build has no such field" (the reason #1924 states).
+		instructionsFiles = []session.InstructionsFileReport{}
+	}
+
 	jsonData := map[string]interface{}{
-		"id":            inst.ID,
-		"title":         inst.Title,
-		"context_level": level,
-		"source":        source,
-		"active":        active,
-		"identity_file": identityFile,
-		"delivery":      delivery,
-		"text":          text,
+		"id":                      inst.ID,
+		"title":                   inst.Title,
+		"context_level":           level,
+		"source":                  source,
+		"active":                  active,
+		"identity_file":           identityFile,
+		"delivery":                delivery,
+		"instructions_file":       instructionsFile,
+		"instructions_file_state": instructionsState,
+		"instructions_files":      instructionsFiles,
+		"text":                    text,
 	}
 	if skipReason != "" {
 		jsonData["skip_reason"] = skipReason
@@ -482,6 +498,12 @@ func handleSessionPrimer(profileArg string, args []string) {
 	fmt.Fprintf(&sb, "Source:        %s\n", source)
 	fmt.Fprintf(&sb, "Identity file: %s\n", identityFile)
 	fmt.Fprintf(&sb, "Delivery:      %s\n", delivery)
+	if len(instructionsFiles) == 0 {
+		fmt.Fprintf(&sb, "Instructions:  %s (%s)\n", instructionsFile, instructionsState)
+	}
+	for _, report := range instructionsFiles {
+		fmt.Fprintf(&sb, "Instructions:  %s (%s)\n", report.Path, report.State)
+	}
 	if skipReason != "" {
 		fmt.Fprintf(&sb, "Skipped:       %s\n", skipReason)
 	}

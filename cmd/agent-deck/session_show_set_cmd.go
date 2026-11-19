@@ -192,6 +192,16 @@ func handleSessionShow(profile string, args []string) {
 	// ambiguous with absence-of-value, and here that ambiguity cost a user a
 	// bug report against the wrong component.
 	jsonData["wrapper"] = inst.Wrapper
+	// Always present for the same reason as "wrapper" above: `session set <id>
+	// instructions-file …` is verified with `session show --json`, and an
+	// absent key would read as "this build has no such field". The scalar is
+	// the first file, the list is every file in the order they are injected.
+	jsonData["instructions_file"] = inst.InstructionsFileFirst()
+	files := inst.InstructionsFilePaths()
+	if files == nil {
+		files = []string{}
+	}
+	jsonData["instructions_files"] = files
 	if inst.Favorite {
 		jsonData["favorite"] = true
 	}
@@ -325,6 +335,9 @@ func handleSessionShow(profile string, args []string) {
 
 	sb.WriteString(fmt.Sprintf("Tool:    %s\n", inst.Tool))
 	sb.WriteString(fmt.Sprintf("Account: %s\n", strconv.Quote(inst.Account)))
+	for _, report := range inst.InstructionsFilesState() {
+		sb.WriteString(fmt.Sprintf("Instructions: %s (%s)\n", report.Path, report.State))
+	}
 	if modelInfo.ModelID != "" {
 		if modelInfo.Model != "" {
 			sb.WriteString(fmt.Sprintf("Model:   %s\n", modelInfo.Model))
@@ -469,6 +482,7 @@ func handleSessionSet(profile string, args []string) {
 		fmt.Println("  account            Named account slot (#924) — resolves via [profiles.<account>.claude].config_dir; restart required")
 		fmt.Println("  idle-timeout       Auto-stop after no tmux output for this duration (#1143; Go duration: 30m, 1h, 24h; 0 disables)")
 		fmt.Println("  context-level      Harness context-level override: none, primer, or full (#2260; empty clears; global < group < session; see `session primer`); restart required")
+		fmt.Println("  instructions-file  Absolute paths, comma separated, of the files appended to this session's context block at every spawn, in that order (replaces the whole list; empty clears; every harness; see `session primer`); restart required")
 		fmt.Println("  prompt-suggestions Claude prompt suggestions: children-off (off when the session has a parent), on, or off (empty clears; session > profile > [launch]); restart required")
 		fmt.Println("  wait-timeout       Wait timer (claude): after a question with a \"(Recommended)\" option under the cursor has waited this long, take that option; never permission/trust prompts (Go duration >= 1m, e.g. 5m; off disables; empty uses [sessions] wait_timeout)")
 		fmt.Println("  order              0-based position in the group (see `session show --json` .order); clamps to the end")
@@ -495,6 +509,9 @@ func handleSessionSet(profile string, args []string) {
 		fmt.Println("  agent-deck session set my-project color \"\"              # clear (opt-out)")
 		fmt.Println("  agent-deck session set my-project context-level primer")
 		fmt.Println("  agent-deck session set my-project context-level \"\"       # clear (inherit group/global)")
+		fmt.Println("  agent-deck session set my-project instructions-file ~/notes/role.md")
+		fmt.Println("  agent-deck session set my-project instructions-file \"\"   # clear")
+		fmt.Println("  agent-deck session set my-project instructions-file \"$HOME/notes/role.md,$HOME/notes/team-rules.md\"")
 		fmt.Println("  agent-deck session set my-project wait-timeout 5m        # take the recommended option after 5 minutes")
 		fmt.Println("  agent-deck session set my-project account work --intended \"acme blocked\" --intended-for 48h")
 		fmt.Println("  agent-deck session set my-project model opus --intended \"Fable weekly cap\"")

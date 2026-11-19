@@ -510,6 +510,18 @@ type Instance struct {
 	// `session set <id> context-level <none|primer|full>` (empty clears).
 	ContextLevel string `json:"context_level,omitempty"`
 
+	// InstructionsFiles are the absolute paths, in the operator's order, of
+	// the files whose content is appended to this session's context block at
+	// every spawn, each in a section of its own (instructions_file.go). Empty
+	// means unset. Persisted in the tool_data extras zone
+	// (instructions_file_persist.go), which also keeps the first path under
+	// the pre-list key `instructions_file`. CLI:
+	// `add|launch --instructions-file <path>` (repeatable, and one occurrence
+	// may carry a comma separated list),
+	// `session set <id> instructions-file "<p1>,<p2>"` (replaces the whole
+	// list, empty clears it).
+	InstructionsFiles []string `json:"instructions_files,omitempty"`
+
 	// QueuedMessage is the -m prompt of a session queued at its group's
 	// max_concurrent cap. Every path off the queue (Storage.StartQueued, a
 	// direct or TUI start, a restart) takes it off the row in the same write

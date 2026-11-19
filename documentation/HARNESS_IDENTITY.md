@@ -214,6 +214,77 @@ legacy *global* `inject_identity = false`, however, is just the global
 layer's value: a group or session `context_level` overrides it, the same as
 any other global < group < session precedence.
 
+## Per-session instructions files
+
+One or more files per session can be appended to the block, for a role, the
+common rules, a brief or a house style the operator wants that session to read
+at every start:
+
+```bash
+agent-deck add --instructions-file ~/notes/role.md -t Develop -c claude .
+agent-deck launch . -c codex --instructions-file /abs/brief.md -m "..."
+# several files, in the order they are injected: repeatable, or one list
+agent-deck add --instructions-file /abs/role.md --instructions-file /abs/standard.md -t Develop -c claude .
+agent-deck session set <id> instructions-file "/abs/role.md,/abs/standard.md"
+agent-deck session set <id> instructions-file ""        # clear
+```
+
+- `--instructions-file` is repeatable and one occurrence may carry a comma
+  separated list; `session set <id> instructions-file` takes that same list and
+  replaces the whole of it (it is one field, not an append). The order is the
+  order the files are injected in. A path that contains a comma cannot be
+  named, and is refused with a message saying so.
+- Every path must be absolute (`$VAR` and `~` are expanded when it is set),
+  the same file twice is injected once, and a path containing a control
+  character (a newline above all) is refused: the block puts the path on a
+  line of its own, where one would inject text. The list is persisted with the session
+  and shown by `session show --json` as `instructions_files`, with
+  `instructions_file` the first of them; a change needs a restart, like the
+  context level. `add --capabilities --json` marks the flag `repeatable`,
+  which is how a client tells this build from one that takes a single file.
+- The files are read at every spawn, never cached, so editing one reaches the
+  session at its next start, restart, resume or fork without touching the
+  field.
+- Their content is appended to the block above, each in a section of its own,
+  `# Session instructions (from <path>)`, so every harness in the table gets
+  it through the same mechanism that carries the block: the written file for
+  claude, pi, omp, gemini, opencode and copilot, the inline override for
+  codex, and `AGENTDECK_IDENTITY_FILE` for the env-only tools (hermes, cursor,
+  crush, custom `--cmd`), which must read the file themselves as before.
+- Where the block rides inline in the launch command (codex locally, and every
+  SSH or sandboxed spawn), the payload has to stay inside
+  `identityInlineMaxBytes` (8 KB, what tmux's ~16 KB pane-command limit
+  leaves), so the largest of three shapes that fits is sent: the files'
+  content; else every file named by one line asking the session to read it;
+  else the block without any instructions section, because the identity block
+  itself is worth more than nothing. A demoted shape is logged as
+  `instructions_files_demoted` with the shape it settled on, and the
+  file-delivered copy keeps the full text either way.
+- With several files the budget is spent in the given order, and once one file
+  is named every later one is named too: the first file (a session's role) is
+  the one that survives, and the result never depends on the sizes further down
+  the list.
+- The measurement is made in the unit the payload is finally sent in: the
+  printf argument of an SSH or sandboxed launch, and for a local codex the
+  whole `developer_instructions=` value as TOML, with a
+  `developer_instructions` you configured yourself counted, because codex
+  receives yours and the block as one value.
+- A file over 64 KB is never inlined, and a missing or unreadable file never
+  fails a spawn: the section says what could not be read and why, agent-deck
+  logs `instructions_file_unreadable`, and the rest of the block is unchanged.
+- Context level `none` (or `--no-identity`) means nothing is injected, the
+  instructions file included: there is no block to append to, and no second
+  channel is opened behind that opt-out. `session primer` states it as
+  `not delivered (context level none)`.
+- A fork and a cross-harness switch (`session switch-tool`, for example claude
+  to codex) carry the files of the session they come from: it is the same job,
+  and the new harness has to be told the same thing. The copy happens before
+  the fork's start command is built, so its very first spawn has them. A
+  `launch` child does not inherit them: it has a job of its own, and names its
+  own files when it should have any.
+- Nothing is written into the project directory and no new environment
+  variable is introduced.
+
 ### Inspecting what a session actually gets
 
 `agent-deck session primer [id]` resolves the level for a session (or the
@@ -238,9 +309,17 @@ Run `agent-deck session current --json` for the full record and CLI reference.
 It is at $AGENTDECK_IDENTITY_FILE and is regenerated on every start/restart.
 ```
 
+It also prints `Instructions:` with the session's instructions files and the
+state of each (`unset`, `ok`, `unreadable: <reason>`,
+`named only (inline budget)`, `not delivered (inline budget)` or
+`not delivered (context level none)`); the text above is the block that spawn
+really delivers, so a file the budget demotes appears there as the line naming
+it rather than as its content.
+
 `--json` gives the same fields programmatically (`context_level`, `source`,
-`active`, `identity_file`, `text`, and `skip_reason` when the level is
-`none`; `delivery` is `file`, or for an SSH/sandboxed session `inline (...)`
+`active`, `identity_file`, `instructions_file`, `instructions_file_state`,
+`instructions_files` (one `{path, state}` per file, in order),
+`text`, and `skip_reason` when the level is `none`; `delivery` is `file`, or for an SSH/sandboxed session `inline (...)`
 naming where the file is written on the host where the harness runs, with
 `identity_file` empty). `source` is one
 of `session`, `session (--no-identity)`, `group:<path>`, `global`,

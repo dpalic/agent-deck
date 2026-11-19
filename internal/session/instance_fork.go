@@ -179,6 +179,7 @@ func (i *Instance) ForkWithOptions(newTitle, newGroupPath string, opts *ClaudeOp
 	}
 	target := NewInstance(newTitle, projectPath)
 	target.Account = i.Account
+	inheritInstructionsFiles(target, i)
 	if newGroupPath != "" {
 		target.GroupPath = newGroupPath
 	} else {
@@ -398,6 +399,9 @@ func (i *Instance) createForkedClaudeInstance(
 	}
 	forked := NewInstance(newTitle, projectPath)
 	forked.Account = i.Account
+	// Before the one-shot command is baked: the block that command carries is
+	// built from these files (#3206).
+	inheritInstructionsFiles(forked, i)
 	if newGroupPath != "" {
 		forked.GroupPath = newGroupPath
 	} else {
@@ -519,6 +523,7 @@ func (i *Instance) CreateForkedPiInstanceWithOptions(
 	}
 
 	forked := NewInstance(newTitle, projectPath)
+	inheritInstructionsFiles(forked, i)
 	if newGroupPath != "" {
 		forked.GroupPath = newGroupPath
 	} else {
@@ -621,6 +626,7 @@ func (i *Instance) CreateForkedCodexInstanceWithOptions(
 	}
 
 	forked := NewInstance(newTitle, projectPath)
+	inheritInstructionsFiles(forked, i)
 	if newGroupPath != "" {
 		forked.GroupPath = newGroupPath
 	} else {

@@ -239,18 +239,42 @@ const identityInlineMaxBytes = 8 << 10
 // identityRemoteText is identityText for an SSH/sandboxed spawn, or ok=false
 // when the encoded block alone exceeds identityInlineMaxBytes.
 func (i *Instance) identityRemoteText() (string, bool) {
-	text, ok := i.identityText()
-	if !ok {
+	if !i.identityInjectionEnabled() {
 		return "", false
 	}
-	if n := len(identityPrintfArg(text)); n > identityInlineMaxBytes {
+	level, _ := i.EffectiveContextLevel()
+	cost := func(s string) int { return len(identityPrintfArg(s)) }
+	text, shape, ok := i.instructionsShapedPrompt(level, cost)
+	if !ok {
 		sessionLog.Warn("identity_remote_block_too_large",
 			slog.String("instance_id", i.ID),
-			slog.Int("bytes", n),
+			slog.Int("bytes", cost(text)),
 			slog.Int("max", identityInlineMaxBytes))
 		return "", false
 	}
+	// A demoted shape is worth a line: the session is told less than the
+	// operator configured, and the identity block itself still arrives.
+	if shape != instructionsContent {
+		sessionLog.Info("instructions_files_demoted",
+			slog.String("instance_id", i.ID),
+			slog.String("paths", i.InstructionsFileValue()),
+			slog.String("shape", instructionsShapeName(shape)),
+			slog.Int("bytes", cost(text)),
+			slog.Int("max", identityInlineMaxBytes))
+	}
 	return text, true
+}
+
+// instructionsShapeName names a shape for a log line.
+func instructionsShapeName(shape instructionsMode) string {
+	switch shape {
+	case instructionsPointer:
+		return "named only"
+	case instructionsNone:
+		return "not delivered"
+	default:
+		return "content"
+	}
 }
 
 // identityPrintfArg encodes s as one shell-quoted, single-line argument for
@@ -503,12 +527,34 @@ func (i *Instance) BuildPrimerPrompt() string {
 // (this always renders something; `session primer` only calls it when
 // ContextInjectionActive is true).
 func (i *Instance) BuildContextPromptForLevel(level string) string {
+	return i.buildContextPrompt(level, instructionsContent)
+}
+
+// BuildDeliveredContextPrompt is the block as this session's next spawn
+// delivers it, with the instructions files in the shape its payload has room
+// for, so `session primer` shows the text the harness really receives
+// instead of a fuller one.
+func (i *Instance) BuildDeliveredContextPrompt(level string) string {
+	return i.buildContextPrompt(level, i.instructionsShape())
+}
+
+// buildContextPrompt is BuildContextPromptForLevel with the shape of the
+// per-session instructions section (instructions_file.go) chosen by the
+// caller: its content for every harness that reads the block from a file, a
+// pointer to the file where the block rides inline in the launch command and
+// the content would not fit (identityRemoteText, codexIdentityOverride).
+func (i *Instance) buildContextPrompt(level string, mode instructionsMode) string {
+	var base string
 	switch level {
 	case ContextLevelPrimer:
-		return i.BuildPrimerPrompt()
+		base = i.BuildPrimerPrompt()
 	default:
-		return i.BuildIdentityPrompt()
+		base = i.BuildIdentityPrompt()
 	}
+	// What the rest of the block leaves of the inline budget, measured the way
+	// the launch command measures it, so the per-file decision inside
+	// instructionsSections is made against the real cost.
+	return base + i.instructionsSections(mode, identityInlineMaxBytes-len(identityPrintfArg(base)))
 }
 
 // hostLabel identifies where this session actually runs: the configured
@@ -752,13 +798,53 @@ func (i *Instance) codexIdentityOverride(codexHome, projectPath string) (string,
 	// exactly what it would have plus our block. An explicit empty override
 	// (found, value=="") contributes no prefix — codex would apply nothing —
 	// but must NOT resurrect a shadowed user/ancestor value; found gates that.
+	prefix := ""
 	if existing, found := codexEffectiveDeveloperInstructions(codexHome, projectPath); found && existing != "" {
-		merged = existing + "\n\n" + merged
+		prefix = existing + "\n\n"
+		merged = prefix + merged
 	}
 	if i.identityRunsElsewhere() {
 		return i.codexRemoteOverrideWithinBudget(merged, merged)
 	}
-	return "developer_instructions=" + identityTOMLString(merged), true
+	// A local codex carries the whole value in its pane command, which tmux
+	// caps at about 16 KB, so the budget is measured on the value that is
+	// actually sent: TOML escaped, with the operator's own
+	// developer_instructions counted, since codex receives both as one value
+	// Over the budget the files are named instead of
+	// carried, and if even that does not fit the block goes without them; the
+	// file-delivered copy under AGENTDECK_IDENTITY_FILE keeps the full text
+	// either way.
+	toValue := func(block string) string {
+		return "developer_instructions=" + identityTOMLString(prefix+block)
+	}
+	value := toValue(merged)
+	if len(value) <= identityInlineMaxBytes || !i.instructionsFileSet() {
+		return value, true
+	}
+	level, _ := i.EffectiveContextLevel()
+	shaped, shape, ok := i.instructionsShapedPrompt(level, func(s string) int {
+		return len(toValue(s))
+	})
+	if !ok {
+		// Not even the bare block fits this budget, which a long operator
+		// prefix alone can cause. The pane command still has to carry
+		// something, so it carries the smallest honest payload rather than
+		// the full content, and says so.
+		sessionLog.Warn("identity_codex_override_over_budget",
+			slog.String("instance_id", i.ID),
+			slog.Int("bytes", len(toValue(shaped))),
+			slog.Int("max", identityInlineMaxBytes))
+		return toValue(shaped), true
+	}
+	if shape != instructionsContent {
+		sessionLog.Info("instructions_files_demoted",
+			slog.String("instance_id", i.ID),
+			slog.String("paths", i.InstructionsFileValue()),
+			slog.String("shape", instructionsShapeName(shape)),
+			slog.Int("bytes", len(value)),
+			slog.Int("max", identityInlineMaxBytes))
+	}
+	return toValue(shaped), true
 }
 
 // codexRemoteOverrideWithinBudget returns the override for an SSH/sandboxed

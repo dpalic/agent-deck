@@ -26,9 +26,16 @@ type RemoteCreationCatalog struct {
 }
 
 type RemoteCreationField struct {
-	Name       string   `json:"name"`
-	Aliases    []string `json:"aliases,omitempty"`
-	TakesValue bool     `json:"takes_value"`
+	Name    string   `json:"name"`
+	Aliases []string `json:"aliases,omitempty"`
+	// TakesValue is false for a boolean flag (IsBoolFlag).
+	TakesValue bool `json:"takes_value"`
+	// Repeatable is true for a flag that may be given more than once and
+	// keeps every occurrence (IsRepeatableFlag), such as
+	// `--instructions-file`. A client that passes several values must require
+	// this mark: a build without it takes one value only, and would read a
+	// separated list as a single value.
+	Repeatable bool `json:"repeatable,omitempty"`
 }
 
 type RemoteCreationTool struct {

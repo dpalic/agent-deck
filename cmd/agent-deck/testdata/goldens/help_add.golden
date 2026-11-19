@@ -43,6 +43,8 @@ Options:
     	Group path (defaults to parent folder)
   -hint value
     	Durable hint key=value for recall (repeatable; e.g. --hint purpose="fix flaky auth test")
+  -instructions-file value
+    	Absolute path of a file whose content is appended to this session's agent-deck context block at every start, restart and resume (repeatable, or one comma separated list; the files are injected in that order; every harness; read at spawn time, a missing file only warns)
   -json
     	Output as JSON
   -location string
